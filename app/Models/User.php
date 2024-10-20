@@ -3,10 +3,12 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Carbon\Carbon;
+use Laravel\Sanctum\HasApiTokens;
+use App\Notifications\SmsNotification;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
@@ -21,6 +23,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone'
     ];
 
     /**
@@ -42,4 +45,25 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function otps()
+    {
+        return $this->hasMany(Otp::class);
+    }
+
+
+    /**
+     * sendOTPNotification
+     * @return [type]
+     */
+    public function sendOTPNotification()
+    {
+        $otpCode = rand(100000, 999999);
+        $this->otps()->create([
+            'user_id' => $this->id,
+            'otp_code' => $otpCode,
+            'expires_at' => Carbon::now()->addMinutes(5),
+        ]);
+        $this->notify(new SmsNotification("Your OTP: {$otpCode}", $this->phone));
+    }
 }
